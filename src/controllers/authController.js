@@ -30,15 +30,15 @@ const register = async (req, res) => {
     const { phone, name, state, district, address } = req.body;
 
     if (!phone || !PHONE_REGEX.test(phone)) {
-      return res.status(400).json({ message: 'Invalid phone number. Use +91XXXXXXXXXX format' });
+      return res.status(400).json({ success: false, message: 'Invalid phone number. Use +91XXXXXXXXXX format', data: null });
     }
     if (!name || !state || !district || !address) {
-      return res.status(400).json({ message: 'name, state, district, and address are required' });
+      return res.status(400).json({ success: false, message: 'name, state, district, and address are required', data: null });
     }
 
     const existingVerifiedUser = await User.findOne({ phone, isVerified: true, activeState: true });
     if (existingVerifiedUser) {
-      return res.status(400).json({ message: 'Phone number already registered. Please login.' });
+      return res.status(400).json({ success: false, message: 'Phone number already registered. Please login.', data: null });
     }
 
     await User.findOneAndUpdate(
@@ -49,10 +49,10 @@ const register = async (req, res) => {
 
     await createOTPSession(phone, req);
 
-    return res.status(200).json({ message: 'OTP sent successfully' });
+    return res.status(200).json({ success: true, message: 'OTP sent successfully', data: null });
   } catch (err) {
     console.error('register error:', err);
-    return res.status(500).json({ message: 'Registration failed' });
+    return res.status(500).json({ success: false, message: 'Registration failed', data: null });
   }
 };
 
@@ -61,20 +61,20 @@ const sendOTP = async (req, res) => {
     const { phone } = req.body;
 
     if (!phone || !PHONE_REGEX.test(phone)) {
-      return res.status(400).json({ message: 'Invalid phone number. Use +91XXXXXXXXXX format' });
+      return res.status(400).json({ success: false, message: 'Invalid phone number. Use +91XXXXXXXXXX format', data: null });
     }
 
     const user = await User.findOne({ phone, activeState: true });
     if (!user) {
-      return res.status(404).json({ message: 'User not found. Please register first.' });
+      return res.status(404).json({ success: false, message: 'User not found. Please register first.', data: null });
     }
 
     await createOTPSession(phone, req);
 
-    return res.status(200).json({ message: 'OTP sent successfully' });
+    return res.status(200).json({ success: true, message: 'OTP sent successfully', data: null });
   } catch (err) {
     console.error('sendOTP error:', err);
-    return res.status(500).json({ message: 'Failed to send OTP' });
+    return res.status(500).json({ success: false, message: 'Failed to send OTP', data: null });
   }
 };
 
@@ -83,7 +83,7 @@ const verifyOTP = async (req, res) => {
     const { phone, otp } = req.body;
 
     if (!phone || !otp) {
-      return res.status(400).json({ message: 'Phone and OTP are required' });
+      return res.status(400).json({ success: false, message: 'Phone and OTP are required', data: null });
     }
 
     const session = await AuthSession.findOne({
@@ -94,21 +94,21 @@ const verifyOTP = async (req, res) => {
     }).sort({ createdAt: -1 });
 
     if (!session) {
-      return res.status(404).json({ message: 'No pending OTP session found' });
+      return res.status(404).json({ success: false, message: 'No pending OTP session found', data: null });
     }
 
     if (new Date() > session.otpExpiry) {
-      return res.status(400).json({ message: 'OTP has expired' });
+      return res.status(400).json({ success: false, message: 'OTP has expired', data: null });
     }
 
     const isMatch = await bcrypt.compare(otp, session.otpHash);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid OTP' });
+      return res.status(400).json({ success: false, message: 'Invalid OTP', data: null });
     }
 
     const user = await User.findOne({ phone, activeState: true });
     if (!user) {
-      return res.status(404).json({ message: 'User not found. Please register first.' });
+      return res.status(404).json({ success: false, message: 'User not found. Please register first.', data: null });
     }
 
     if (!user.isVerified) {
@@ -132,18 +132,21 @@ const verifyOTP = async (req, res) => {
     await session.save();
 
     return res.status(200).json({
+      success: true,
       message: 'OTP verified successfully',
-      token,
-      user: {
-        id: user._id,
-        phone: user.phone,
-        name: user.name,
-        role: user.role,
+      data: {
+        token,
+        user: {
+          id:    user._id,
+          phone: user.phone,
+          name:  user.name,
+          role:  user.role,
+        },
       },
     });
   } catch (err) {
     console.error('verifyOTP error:', err);
-    return res.status(500).json({ message: 'OTP verification failed' });
+    return res.status(500).json({ success: false, message: 'OTP verification failed', data: null });
   }
 };
 
@@ -156,25 +159,25 @@ const logout = async (req, res) => {
     });
 
     if (!session) {
-      return res.status(404).json({ message: 'Active session not found' });
+      return res.status(404).json({ success: false, message: 'Active session not found', data: null });
     }
 
     session.logoutAt = new Date();
     await session.save();
 
-    return res.status(200).json({ message: 'Logged out successfully' });
+    return res.status(200).json({ success: true, message: 'Logged out successfully', data: null });
   } catch (err) {
     console.error('logout error:', err);
-    return res.status(500).json({ message: 'Logout failed' });
+    return res.status(500).json({ success: false, message: 'Logout failed', data: null });
   }
 };
 
 const me = async (req, res) => {
   try {
-    return res.status(200).json({ user: req.user });
+    return res.status(200).json({ success: true, message: 'User fetched successfully', data: { user: req.user } });
   } catch (err) {
     console.error('me error:', err);
-    return res.status(500).json({ message: 'Failed to fetch user' });
+    return res.status(500).json({ success: false, message: 'Failed to fetch user', data: null });
   }
 };
 
@@ -184,10 +187,10 @@ const sessions = async (req, res) => {
       .sort({ createdAt: -1 })
       .select('-otpHash');
 
-    return res.status(200).json({ sessions: userSessions });
+    return res.status(200).json({ success: true, message: 'Sessions fetched successfully', data: { sessions: userSessions } });
   } catch (err) {
     console.error('sessions error:', err);
-    return res.status(500).json({ message: 'Failed to fetch sessions' });
+    return res.status(500).json({ success: false, message: 'Failed to fetch sessions', data: null });
   }
 };
 
@@ -196,11 +199,11 @@ const createAdmin = async (req, res) => {
     const { phone, secretKey } = req.body;
 
     if (!secretKey || secretKey !== process.env.ADMIN_SECRET_KEY) {
-      return res.status(403).json({ message: 'Invalid secret key' });
+      return res.status(403).json({ success: false, message: 'Invalid secret key', data: null });
     }
 
     if (!phone || !PHONE_REGEX.test(phone)) {
-      return res.status(400).json({ message: 'Invalid phone number. Use +91XXXXXXXXXX format' });
+      return res.status(400).json({ success: false, message: 'Invalid phone number. Use +91XXXXXXXXXX format', data: null });
     }
 
     const user = await User.findOneAndUpdate(
@@ -210,13 +213,13 @@ const createAdmin = async (req, res) => {
     );
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ success: false, message: 'User not found', data: null });
     }
 
-    return res.status(200).json({ message: `${phone} has been granted admin access` });
+    return res.status(200).json({ success: true, message: `${phone} has been granted admin access`, data: null });
   } catch (err) {
     console.error('createAdmin error:', err);
-    return res.status(500).json({ message: 'Failed to grant admin access' });
+    return res.status(500).json({ success: false, message: 'Failed to grant admin access', data: null });
   }
 };
 
