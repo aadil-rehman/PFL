@@ -1,5 +1,6 @@
 const Plant = require('../models/Plant');
 const User  = require('../models/User');
+const { uploadToCloudinary, saveFileMeta } = require('../services/fileService');
 
 // ─── Helper: update user's totalPlants count ──────────────────────
 const syncUserTotalPlants = async (userId) => {
@@ -17,7 +18,6 @@ const submitPlant = async (req, res) => {
     const {
       plantName,
       quantity,
-      photoUrl,
       description,
       longitude,
       latitude,
@@ -26,8 +26,8 @@ const submitPlant = async (req, res) => {
       address,
     } = req.body;
 
-    if (!photoUrl) {
-      return res.status(400).json({ message: 'photoUrl is required' });
+    if (!req.file) {
+      return res.status(400).json({ message: 'Plant image is required' });
     }
 
     const { isTree } = req.aiResult || { isTree: true };
@@ -36,11 +36,13 @@ const submitPlant = async (req, res) => {
       return res.status(400).json({ message: 'Tree is not present in uploaded image' });
     }
 
+    const cloudinaryResult = await uploadToCloudinary(req.file.buffer, 'plant');
+
     const plant = await Plant.create({
       userId: req.user._id,
       plantName,
       quantity:    quantity || 1,
-      photoUrl,
+      photoUrl:    cloudinaryResult.secure_url,
       description,
       state,
       district,
@@ -50,6 +52,15 @@ const submitPlant = async (req, res) => {
         : undefined,
       status:     'approved',
       aiVerified: true,
+    });
+
+    await saveFileMeta({
+      url:             cloudinaryResult.secure_url,
+      publicId:        cloudinaryResult.public_id,
+      file:            req.file,
+      relatedRecordId: plant._id,
+      relatedRecordKey: 'plant',
+      uploadedBy:      req.user._id,
     });
 
     return res.status(201).json({

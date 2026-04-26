@@ -8,11 +8,13 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const authRoutes = require('./src/routes/auth');
+const authRoutes  = require('./src/routes/auth');
 const plantRoutes = require('./src/routes/plants');
+const fileRoutes  = require('./src/routes/files');
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth',   authRoutes);
 app.use('/api/plants', plantRoutes);
+app.use('/api/files',  fileRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'PFL API is running' });
