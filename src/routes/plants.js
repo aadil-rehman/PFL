@@ -10,8 +10,8 @@ const {
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const imageAnalysisMiddleware = require('../ai/imageAnalysisMiddleware');
 
-router.post('/', protect, imageAnalysisMiddleware, submitPlant);
-router.get('/', getAllPlants);
+router.post('/submit', protect, imageAnalysisMiddleware, submitPlant);
+router.get('/all', getAllPlants);
 router.get('/my', protect, getMyPlants);
 router.get('/:id', getPlantById);
 router.patch('/:id/status', protect, adminOnly, updatePlantStatus);

@@ -30,7 +30,11 @@ const submitPlant = async (req, res) => {
       return res.status(400).json({ message: 'photoUrl is required' });
     }
 
-    const { isTree, confidence, reason } = req.aiResult || { isTree: true, confidence: 1.0, reason: null };
+    const { isTree } = req.aiResult || { isTree: true };
+
+    if (!isTree) {
+      return res.status(400).json({ message: 'Tree is not present in uploaded image' });
+    }
 
     const plant = await Plant.create({
       userId: req.user._id,
@@ -44,13 +48,12 @@ const submitPlant = async (req, res) => {
       coordinates: longitude && latitude
         ? { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] }
         : undefined,
-      status:          isTree ? 'approved' : 'rejected',
-      aiVerified:      isTree,
-      rejectionReason: isTree ? undefined : reason,
+      status:     'approved',
+      aiVerified: true,
     });
 
     return res.status(201).json({
-      message: isTree ? 'Plant submitted successfully' : 'Submission rejected: no tree detected in image',
+      message: 'Plant submitted successfully',
       data: plant,
     });
   } catch (err) {
