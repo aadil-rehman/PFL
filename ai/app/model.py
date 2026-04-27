@@ -65,51 +65,54 @@ def run_tree_inference(
     """
     Run CLIP zero-shot inference on raw image bytes.
 
-    Strategy:
-      • Build a candidate list: positive prompts ("a photo of a tree", ...)
-        followed by negative prompts ("a photo with no trees", ...).
-      • Compute softmax probabilities over all candidates.
-      • tree_detected = True if the best positive-prompt probability ≥ threshold.
+    Strategy (pairwise):
+      • For each positive prompt, run a 2-label softmax against a single
+        "no tree" anchor ("a photo with no trees").
+      • This avoids probability dilution caused by many competing labels
+        in a single softmax — critical when the tree is small or partially hidden.
+      • tree_detected = True if the best pairwise score >= threshold.
 
     Returns:
         tree_detected   – bool
-        confidence      – float, best positive-prompt probability (0–1)
+        confidence      – float, best pairwise score (0–1)
         label           – the winning positive prompt text, or None
-        all_detections  – list of "prompt(score)" for every candidate
+        all_detections  – list of "prompt(score)" for every positive prompt
     """
     model, processor = model_and_processor
     image = _decode_image(image_bytes)
 
     positive = settings.positive_prompts
-    negative = settings.negative_prompts
-    all_labels = positive + negative
+    # Fixed anchor used for every pairwise comparison
+    no_tree_anchor = "a photo with no trees"
 
     device = next(model.parameters()).device
 
-    inputs = processor(
-        text=all_labels,
-        images=image,
-        return_tensors="pt",
-        padding=True,
-    )
-    inputs = {k: v.to(device) for k, v in inputs.items()}
-
-    with torch.no_grad():
-        outputs = model(**inputs)
-        # logits_per_image shape: [1, num_labels]
-        probs = outputs.logits_per_image.softmax(dim=-1)[0]   # shape: [num_labels]
-
-    # Score each label
-    scored = [(label, float(probs[i])) for i, label in enumerate(all_labels)]
-    all_detections = [f"{label}({score:.2f})" for label, score in scored]
-
-    # Best positive prompt
     best_label: Optional[str] = None
     best_conf:  float = 0.0
-    for label, score in scored[:len(positive)]:
+    all_detections: list[str] = []
+
+    for pos_prompt in positive:
+        pair = [pos_prompt, no_tree_anchor]
+
+        inputs = processor(
+            text=pair,
+            images=image,
+            return_tensors="pt",
+            padding=True,
+        )
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            outputs = model(**inputs)
+            # 2-label softmax: [p_tree, p_no_tree]
+            probs = outputs.logits_per_image.softmax(dim=-1)[0]
+
+        score = float(probs[0])   # probability that image matches pos_prompt
+        all_detections.append(f"{pos_prompt}({score:.2f})")
+
         if score > best_conf:
             best_conf  = score
-            best_label = label
+            best_label = pos_prompt
 
     tree_found = best_conf >= settings.CONFIDENCE_THRESHOLD
 
