@@ -24,19 +24,28 @@ class Settings(BaseSettings):
         "a photo of trees,"
         "a photo of a forest,"
         "a photo of a palm tree,"
-        "a photo of a plant or tree"
+        "a photo of a plant or tree,"
+        "a person standing next to a tree,"
+        "a person planting a tree,"
+        "an outdoor scene with a tree,"
+        "a tree growing in a field"
     )
 
     # Prompts that mean "no tree". Used to calibrate the softmax.
+    # NOTE: "a photo of a person" removed — people are often present in tree images
+    # and caused false negatives when a person was the dominant subject.
     TREE_NEGATIVE_PROMPTS: str = (
         "a photo with no trees,"
-        "a photo of a building,"
-        "a photo of a person,"
-        "a photo of an indoor scene"
+        "a photo of a building with no trees,"
+        "a photo of an indoor scene,"
+        "a photo of a road with no trees,"
+        "a photo of a sky with no trees"
     )
 
-    # If the best positive-prompt score exceeds this, tree_detected = True.
-    CONFIDENCE_THRESHOLD: float = 0.40
+    # If the best pairwise score exceeds this, tree_detected = True.
+    # Pairwise comparison: 0.50 = tie, >0.50 = tree more likely than no-tree.
+    # Set to 0.55 to allow a small margin above random while staying sensitive.
+    CONFIDENCE_THRESHOLD: float = 0.55
 
     #  Upload limits 
     MAX_UPLOAD_BYTES: int = 10_485_760   # 10 MB
