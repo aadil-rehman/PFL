@@ -9,6 +9,7 @@ const {
   getCampaignSummary,
   getLeaderboard,
   getMyLeaderboardRank,
+  getImpactMap,
 } = require('../controllers/plantController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const imageAnalysisMiddleware = require('../ai/imageAnalysisMiddleware');
@@ -18,6 +19,7 @@ router.post('/submit', protect, upload.single('image'), imageAnalysisMiddleware,
 router.get('/summary', getCampaignSummary);
 router.get('/leaderboard', getLeaderboard);
 router.get('/leaderboard/me', protect, getMyLeaderboardRank);
+router.get('/impact-map', getImpactMap);
 router.get('/all', getAllPlants);
 router.get('/my', protect, getMyPlants);
 router.get('/:id', getPlantById);

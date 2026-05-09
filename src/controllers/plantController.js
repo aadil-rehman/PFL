@@ -180,12 +180,13 @@ const getCampaignSummary = async (req, res) => {
       return res.status(404).json({ success: false, message: 'No active campaign found', data: null });
     }
 
-    const [plantsAgg, participants] = await Promise.all([
+    const [plantsAgg, participants, states] = await Promise.all([
       Plant.aggregate([
         { $match: { status: 'approved' } },
         { $group: { _id: null, total: { $sum: '$quantity' } } },
       ]),
       Plant.distinct('userId', { status: 'approved' }),
+      Plant.distinct('state', { status: 'approved', state: { $nin: [null, ''] } }),
     ]);
 
     const treesPlanted = plantsAgg[0]?.total || 0;
@@ -217,7 +218,8 @@ const getCampaignSummary = async (req, res) => {
         },
         treesPlanted,
         toGo,
-        participants: participants.length,
+        participants:   participants.length,
+        statesCovered:  states.length,
         progressPercent,
         timeRemaining: {
           days,
@@ -316,4 +318,102 @@ const getMyLeaderboardRank = async (req, res) => {
   }
 };
 
-module.exports = { submitPlant, getAllPlants, getMyPlants, getPlantById, updatePlantStatus, getCampaignSummary, getLeaderboard, getMyLeaderboardRank };
+const getImpactMap = async (req, res) => {
+  try {
+    const minLng = parseFloat(req.query.minLng);
+    const minLat = parseFloat(req.query.minLat);
+    const maxLng = parseFloat(req.query.maxLng);
+    const maxLat = parseFloat(req.query.maxLat);
+    const zoom   = Math.min(Math.max(parseInt(req.query.zoom, 10) || 5, 1), 20);
+    const limit  = Math.min(Math.max(parseInt(req.query.limit, 10) || 1000, 1), 5000);
+
+    const hasBbox = [minLng, minLat, maxLng, maxLat].every(Number.isFinite);
+
+    const match = { status: 'approved', 'coordinates.coordinates': { $exists: true, $ne: [] } };
+    if (hasBbox) {
+      match.coordinates = {
+        $geoWithin: {
+          $box: [[minLng, minLat], [maxLng, maxLat]],
+        },
+      };
+    }
+
+    if (zoom >= 12) {
+      const plants = await Plant.find(match)
+        .select('plantName photoUrl state district coordinates createdAt')
+        .limit(limit)
+        .lean();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Impact map points fetched successfully',
+        data: {
+          mode: 'points',
+          zoom,
+          count: plants.length,
+          points: plants.map(p => ({
+            id:        p._id,
+            plantName: p.plantName,
+            photoUrl:  p.photoUrl,
+            state:     p.state,
+            district:  p.district,
+            lng:       p.coordinates?.coordinates?.[0],
+            lat:       p.coordinates?.coordinates?.[1],
+            createdAt: p.createdAt,
+          })),
+        },
+      });
+    }
+
+    const gridSize = zoom >= 9 ? 0.1
+                   : zoom >= 7 ? 0.5
+                   : zoom >= 5 ? 1
+                   : zoom >= 3 ? 2.5
+                   :              5;
+
+    const clusters = await Plant.aggregate([
+      { $match: match },
+      {
+        $project: {
+          quantity: 1,
+          lng: { $arrayElemAt: ['$coordinates.coordinates', 0] },
+          lat: { $arrayElemAt: ['$coordinates.coordinates', 1] },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            gx: { $floor: { $divide: ['$lng', gridSize] } },
+            gy: { $floor: { $divide: ['$lat', gridSize] } },
+          },
+          count:  { $sum: { $ifNull: ['$quantity', 1] } },
+          avgLng: { $avg: '$lng' },
+          avgLat: { $avg: '$lat' },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: limit },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Impact map clusters fetched successfully',
+      data: {
+        mode: 'clusters',
+        zoom,
+        gridSize,
+        count: clusters.length,
+        clusters: clusters.map(c => ({
+          lng:   c.avgLng,
+          lat:   c.avgLat,
+          count: c.count,
+        })),
+      },
+    });
+  } catch (err) {
+    console.error('getImpactMap error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch impact map', data: null });
+  }
+};
+
+module.exports = { submitPlant, getAllPlants, getMyPlants, getPlantById, updatePlantStatus, getCampaignSummary, getLeaderboard, getMyLeaderboardRank, getImpactMap };
