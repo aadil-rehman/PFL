@@ -7,6 +7,8 @@ const {
   getPlantById,
   updatePlantStatus,
   getCampaignSummary,
+  getLeaderboard,
+  getMyLeaderboardRank,
 } = require('../controllers/plantController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const imageAnalysisMiddleware = require('../ai/imageAnalysisMiddleware');
@@ -14,6 +16,8 @@ const upload = require('../config/multer');
 
 router.post('/submit', protect, upload.single('image'), imageAnalysisMiddleware, submitPlant);
 router.get('/summary', getCampaignSummary);
+router.get('/leaderboard', getLeaderboard);
+router.get('/leaderboard/me', protect, getMyLeaderboardRank);
 router.get('/all', getAllPlants);
 router.get('/my', protect, getMyPlants);
 router.get('/:id', getPlantById);

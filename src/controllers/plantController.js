@@ -230,4 +230,86 @@ const getCampaignSummary = async (req, res) => {
   }
 };
 
-module.exports = { submitPlant, getAllPlants, getMyPlants, getPlantById, updatePlantStatus, getCampaignSummary };
+const getLeaderboard = async (req, res) => {
+  try {
+    const page  = Math.max(parseInt(req.query.page, 10)  || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 100);
+    const skip  = (page - 1) * limit;
+
+    const baseFilter = { activeState: true, totalPlants: { $gt: 0 } };
+
+    const [users, total] = await Promise.all([
+      User.find(baseFilter)
+        .select('name profilePhoto state district totalPlants')
+        .sort({ totalPlants: -1, _id: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      User.countDocuments(baseFilter),
+    ]);
+
+    const leaderboard = users.map((u, idx) => ({
+      rank:         skip + idx + 1,
+      userId:       u._id,
+      name:         u.name,
+      profilePhoto: u.profilePhoto,
+      state:        u.state,
+      district:     u.district,
+      totalPlants:  u.totalPlants || 0,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: 'Leaderboard fetched successfully',
+      data: {
+        leaderboard,
+        pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      },
+    });
+  } catch (err) {
+    console.error('getLeaderboard error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch leaderboard', data: null });
+  }
+};
+
+const getMyLeaderboardRank = async (req, res) => {
+  try {
+    const meDoc = await User.findById(req.user._id)
+      .select('name profilePhoto state district totalPlants activeState')
+      .lean();
+
+    if (!meDoc) {
+      return res.status(404).json({ success: false, message: 'User not found', data: null });
+    }
+
+    const myTotal = meDoc.totalPlants || 0;
+    const rank = myTotal > 0 && meDoc.activeState
+      ? (await User.countDocuments({
+          activeState: true,
+          $or: [
+            { totalPlants: { $gt: myTotal } },
+            { totalPlants: myTotal, _id: { $lt: meDoc._id } },
+          ],
+        })) + 1
+      : null;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Your leaderboard rank fetched successfully',
+      data: {
+        rank,
+        userId:       meDoc._id,
+        name:         meDoc.name,
+        profilePhoto: meDoc.profilePhoto,
+        state:        meDoc.state,
+        district:     meDoc.district,
+        totalPlants:  myTotal,
+      },
+    });
+  } catch (err) {
+    console.error('getMyLeaderboardRank error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch your rank', data: null });
+  }
+};
+
+module.exports = { submitPlant, getAllPlants, getMyPlants, getPlantById, updatePlantStatus, getCampaignSummary, getLeaderboard, getMyLeaderboardRank };
