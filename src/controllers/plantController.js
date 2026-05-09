@@ -52,6 +52,10 @@ const submitPlant = async (req, res) => {
       uploadedBy:       req.user._id,
     });
 
+    if (plant.status === 'approved') {
+      await syncUserTotalPlants(req.user._id);
+    }
+
     return res.status(201).json({ success: true, message: 'Plant submitted successfully', data: { plant } });
   } catch (err) {
     console.error('submitPlant error:', err);
