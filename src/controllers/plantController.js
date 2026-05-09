@@ -1,5 +1,6 @@
-const Plant = require('../models/Plant');
-const User  = require('../models/User');
+const Plant    = require('../models/Plant');
+const User     = require('../models/User');
+const Campaign = require('../models/Campaign');
 const { uploadToCloudinary, saveFileMeta } = require('../services/fileService');
 
 const syncUserTotalPlants = async (userId) => {
@@ -168,4 +169,65 @@ const updatePlantStatus = async (req, res) => {
   }
 };
 
-module.exports = { submitPlant, getAllPlants, getMyPlants, getPlantById, updatePlantStatus };
+const getCampaignSummary = async (req, res) => {
+  try {
+    const campaign = await Campaign.findOne({ isActive: true }).sort({ endDate: -1 });
+    if (!campaign) {
+      return res.status(404).json({ success: false, message: 'No active campaign found', data: null });
+    }
+
+    const [plantsAgg, participants] = await Promise.all([
+      Plant.aggregate([
+        { $match: { status: 'approved' } },
+        { $group: { _id: null, total: { $sum: '$quantity' } } },
+      ]),
+      Plant.distinct('userId', { status: 'approved' }),
+    ]);
+
+    const treesPlanted = plantsAgg[0]?.total || 0;
+    const goal         = campaign.goal;
+    const toGo         = Math.max(goal - treesPlanted, 0);
+
+    const now      = new Date();
+    const endDate  = new Date(campaign.endDate);
+    const diffMs   = Math.max(endDate - now, 0);
+    const totalSec = Math.floor(diffMs / 1000);
+    const days     = Math.floor(totalSec / 86400);
+    const hours    = Math.floor((totalSec % 86400) / 3600);
+    const minutes  = Math.floor((totalSec % 3600) / 60);
+
+    const progressPercent = goal > 0
+      ? Math.min(Number(((treesPlanted / goal) * 100).toFixed(2)), 100)
+      : 0;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Campaign summary fetched successfully',
+      data: {
+        campaign: {
+          id:        campaign._id,
+          title:     campaign.title,
+          goal,
+          startDate: campaign.startDate,
+          endDate:   campaign.endDate,
+        },
+        treesPlanted,
+        toGo,
+        participants: participants.length,
+        progressPercent,
+        timeRemaining: {
+          days,
+          hours,
+          minutes,
+          totalMs: diffMs,
+          isEnded: diffMs === 0,
+        },
+      },
+    });
+  } catch (err) {
+    console.error('getCampaignSummary error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch campaign summary', data: null });
+  }
+};
+
+module.exports = { submitPlant, getAllPlants, getMyPlants, getPlantById, updatePlantStatus, getCampaignSummary };
