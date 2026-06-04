@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import heroBg from '../assets/heroo.png'
+import { useSubmitPanel } from './submit/SubmitPanelContext'
 
 const VIDEO_URL = 'https://ik.imagekit.io/insaan/app/work.mp4'
 
 export default function Hero() {
   const [playing, setPlaying] = useState(false)
   const videoRef = useRef(null)
+  const { openPanel } = useSubmitPanel()
 
   useEffect(() => {
     const v = videoRef.current
@@ -39,7 +41,7 @@ export default function Hero() {
       </div>
 
       {/* ── Left content — vertically centred ── */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center px-8 md:px-16 max-w-xl">
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-8 md:px-16 max-w-2xl">
 
         {/* Badge */}
         <div className="inline-flex items-center gap-2 border border-green-400/40 bg-green-400/10 rounded-full px-3 py-1 w-fit mb-6">
@@ -50,7 +52,7 @@ export default function Hero() {
         </div>
 
         {/* Headline */}
-        <h1 className="text-5xl md:text-[3.75rem] font-black text-white leading-[1.3] mb-5 tracking-tight">
+        <h1 className="font-devanagari text-6xl md:text-[5rem] font-normal text-white leading-[1.2] mb-5 tracking-tight">
           एक पौधा,<br />
           <span className="text-green-400">हर घर पौधा।</span>
         </h1>
@@ -66,7 +68,10 @@ export default function Hero() {
 
         {/* CTAs */}
         <div className="flex items-center gap-3 flex-wrap mb-8">
-          <button className="flex items-center gap-2 bg-green-500 hover:bg-green-400 active:scale-95 text-white font-bold px-7 py-3.5 rounded-full transition-all duration-200 hover:shadow-xl hover:shadow-green-500/30 text-sm tracking-wide">
+          <button
+            onClick={openPanel}
+            className="flex items-center gap-2 bg-green-500 hover:bg-green-400 active:scale-95 text-white font-bold px-7 py-3.5 rounded-full transition-all duration-200 hover:shadow-xl hover:shadow-green-500/30 text-sm tracking-wide"
+          >
             🌱 Plant My Tree
           </button>
           <button className="flex items-center gap-2 text-white/75 hover:text-white font-medium px-6 py-3.5 rounded-full border border-white/20 hover:border-white/50 backdrop-blur-sm transition-all duration-200 hover:bg-white/5 text-sm">

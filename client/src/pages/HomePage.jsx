@@ -1,5 +1,7 @@
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
+import HowToJoin from '../components/HowToJoin'
+import Leaderboard from '../components/leaderboard/Leaderboard'
 import NoDonationBanner from '../components/NoDonationBanner'
 
 export default function HomePage() {
@@ -7,6 +9,8 @@ export default function HomePage() {
     <main className="min-h-screen bg-[#0b1a10]">
       <Navbar />
       <Hero />
+      <HowToJoin />
+      <Leaderboard />
       <NoDonationBanner />
     </main>
   )
