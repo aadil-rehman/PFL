@@ -1,18 +1,24 @@
-/**
- * TODO (AI team): Implement this function.
- *
- * Receives a public image URL and returns whether the image contains a tree.
- *
- * Expected return shape:
- * {
- *   isTree      : boolean,  // true = tree detected, false = not a tree
- *   confidence  : number,   // 0.0 – 1.0
- *   reason      : string,   // human-readable explanation (used as rejectionReason)
- * }
- */
-const analyzeImage = async (imageUrl) => {
-  // TODO: call AI model / external API here using imageUrl
-  throw new Error('AI image analysis not yet implemented');
+const axios    = require('axios');
+const FormData = require('form-data');
+
+const analyzeImage = async (buffer, file) => {
+  const form = new FormData();
+  form.append('file', buffer, {
+    filename:    file.originalname,
+    contentType: file.mimetype,
+  });
+
+  const { data } = await axios.post(
+    `${process.env.AI_SERVICE_URL}/api/v1/detect`,
+    form,
+    { headers: form.getHeaders() }
+  );
+
+  return {
+    isTree:     data.tree_detected,
+    confidence: data.confidence,
+    reason:     data.message,
+  };
 };
 
 module.exports = analyzeImage;

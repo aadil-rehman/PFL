@@ -1,22 +1,60 @@
-# Node modules
-
+# ── Node.js ───────────────────────────────────────────────────────────────────
 node_modules/
-client/node_modules/
-
-# Environment variables
-
-.env
-
-# Logs
-
-*.log
-
-# Build output
-
 dist/
 build/
+client/node_modules/
 
-# OS files
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
 
+# ── Python virtual environments ───────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── HuggingFace model cache (do NOT commit ~600 MB of weights) ────────────────
+.cache/
+model_cache/
+hf_cache/
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Temp / uploads ────────────────────────────────────────────────────────────
+uploads/
+tmp/
+*.tmp
+
+# ── Certs / keys ──────────────────────────────────────────────────────────────
+*.pem
+*.key
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

@@ -16,4 +16,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+userSchema.index({ totalPlants: -1, _id: 1 });
+
 module.exports = mongoose.model('User', userSchema);
