@@ -11,10 +11,10 @@ export default function NoDonationBanner() {
       >
         <div className="bg-[#0f2318] border border-b-0 border-green-500/30 rounded-t-2xl px-8 py-3 text-center">
           <p className="text-green-400 text-[11px] font-semibold">
-            🌱 Plant a tree — that's all we need.
+            🌱 Plant a tree. That's all we ask of you.
           </p>
           <p className="text-white/40 text-[10px] mt-1">
-            This is a community mission, not a charity.
+            This is a people's movement, not a charity.
           </p>
         </div>
       </div>
@@ -26,7 +26,7 @@ export default function NoDonationBanner() {
       >
         <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
         <p className="text-white/80 text-[11px] font-semibold tracking-widest uppercase whitespace-nowrap">
-          We don't accept donations
+          We never ask for money
         </p>
         <span className="text-white/30 text-[10px] ml-1">{open ? '▼' : '▲'}</span>
       </button>

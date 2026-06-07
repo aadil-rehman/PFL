@@ -1,11 +1,51 @@
 import { useState, useRef, useEffect } from 'react'
 import heroBg from '../assets/heroo.png'
 import { useSubmitPanel } from './submit/SubmitPanelContext'
+import { fetchCampaignSummary } from '../api/plants'
 
 const VIDEO_URL = 'https://ik.imagekit.io/insaan/app/work.mp4'
 
+const nf = new Intl.NumberFormat('en-IN')
+
+// Whole days remaining until the campaign deadline.
+function daysRemaining(endDate) {
+  const diffMs = Math.max(new Date(endDate).getTime() - Date.now(), 0)
+  return Math.ceil(diffMs / 86400000)
+}
+
+// Animates a number from its current value up to `value` with an ease-out
+// curve. Re-runs whenever `value` changes — so each stat counts up from 0 the
+// first time the live data lands.
+function CountUp({ value, duration = 1400 }) {
+  const [display, setDisplay] = useState(0)
+  const fromRef = useRef(0)
+  const rafRef  = useRef(0)
+
+  useEffect(() => {
+    const from  = fromRef.current
+    const start = performance.now()
+    const ease  = (t) => 1 - Math.pow(1 - t, 3)
+
+    const step = (now) => {
+      const t = Math.min((now - start) / duration, 1)
+      setDisplay(from + (value - from) * ease(t))
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(step)
+      } else {
+        fromRef.current = value
+      }
+    }
+    rafRef.current = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [value, duration])
+
+  return nf.format(Math.round(display))
+}
+
 export default function Hero() {
   const [playing, setPlaying] = useState(false)
+  const [summary, setSummary] = useState(null)
+  const [, tick] = useState(0)
   const videoRef = useRef(null)
   const { openPanel } = useSubmitPanel()
 
@@ -17,6 +57,31 @@ export default function Hero() {
     const t = setTimeout(() => setPlaying(true), 5000)
     return () => clearTimeout(t)
   }, [])
+
+  // Live campaign stats from the API.
+  useEffect(() => {
+    let active = true
+    fetchCampaignSummary()
+      .then((data) => { if (active) setSummary(data) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
+
+  // Re-render every 30s so the countdown stays current (minute precision).
+  useEffect(() => {
+    const id = setInterval(() => tick((t) => t + 1), 30000)
+    return () => clearInterval(id)
+  }, [])
+
+  const endDate = summary?.campaign?.endDate
+
+  // Raw numbers (or null before data lands) — each tile counts up from 0 to these.
+  const stats = [
+    { value: summary?.treesPlanted ?? 0, label: 'Trees Planted' },
+    { value: summary?.toGo ?? 0,         label: 'To Go' },
+    { value: summary?.participants ?? 0, label: 'Participants' },
+    { value: endDate ? daysRemaining(endDate) : null, label: 'Days Remaining' },
+  ]
 
   return (
     <section className="relative h-screen flex flex-col overflow-hidden">
@@ -36,59 +101,59 @@ export default function Hero() {
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${playing ? 'opacity-100' : 'opacity-0'}`}
         />
         <div className="absolute inset-0 bg-black/55" />
-        <div className="absolute inset-0 bg-linear-to-r from-black/85 via-black/50 to-transparent" />
-        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/60 via-black/40 to-black/80" />
       </div>
 
-      {/* ── Left content — vertically centred ── */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center px-8 md:px-16 max-w-2xl">
+      {/* ── Centered content ── */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 pt-24 md:pt-28">
 
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 border border-green-400/40 bg-green-400/10 rounded-full px-3 py-1 w-fit mb-6">
+        <div className="inline-flex items-center gap-2 border border-green-400/40 bg-green-400/10 rounded-full px-4 py-1.5 mb-8">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[10px] font-semibold tracking-[0.18em] text-green-300 uppercase">
-            Pollution Free Loni Mission
+          <span className="text-[11px] font-semibold tracking-[0.18em] text-green-300 uppercase">
+            🌍 Pollution Free Loni Mission
           </span>
         </div>
 
         {/* Headline */}
-        <h1 className="font-devanagari text-6xl md:text-[5rem] font-normal text-white leading-[1.2] mb-5 tracking-tight">
+        <h1 className="font-devanagari text-6xl md:text-[5.5rem] font-normal text-white leading-[1.05] mb-7 tracking-tight">
           एक पौधा,<br />
           <span className="text-green-400">हर घर पौधा।</span>
         </h1>
 
-        {/* Divider */}
-        <div className="w-12 h-0.5 bg-green-500 rounded-full mb-5" />
-
         {/* Body */}
-        <p className="text-white/70 text-sm md:text-[15px] leading-relaxed mb-8 max-w-sm">
-          Loni is the <span className="text-white font-semibold">world's most polluted city.</span> We're changing that: one tree at a time. Join us in planting{' '}
-          <span className="text-green-400 font-semibold">1,00,000 trees</span> and give Loni the future it deserves.
+        <p className="text-white/70 text-base md:text-lg leading-relaxed mb-10 max-w-xl">
+          Loni is the{' '}
+          <span className="text-white font-semibold">world's most polluted city</span> — but one sapling from every home can change that. Help us plant{' '}
+          <span className="text-green-400 font-semibold">1,00,000 trees by 5 June 2027</span> and let Loni breathe again.
         </p>
 
         {/* CTAs */}
-        <div className="flex items-center gap-3 flex-wrap mb-8">
+        <div className="flex items-center justify-center gap-4 flex-wrap">
           <button
             onClick={openPanel}
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-400 active:scale-95 text-white font-bold px-7 py-3.5 rounded-full transition-all duration-200 hover:shadow-xl hover:shadow-green-500/30 text-sm tracking-wide"
+            className="flex items-center gap-2 bg-green-500 hover:bg-green-400 active:scale-95 text-white font-bold px-8 py-4 rounded-full transition-all duration-200 hover:shadow-xl hover:shadow-green-500/30 text-sm tracking-wide"
           >
             🌱 Plant My Tree
           </button>
-          <button className="flex items-center gap-2 text-white/75 hover:text-white font-medium px-6 py-3.5 rounded-full border border-white/20 hover:border-white/50 backdrop-blur-sm transition-all duration-200 hover:bg-white/5 text-sm">
-            See the Mission →
+          <button className="flex items-center gap-2 text-white/85 hover:text-white font-medium px-8 py-4 rounded-full border border-white/25 hover:border-white/50 backdrop-blur-sm transition-all duration-200 hover:bg-white/5 text-sm">
+            See Leaderboard →
           </button>
         </div>
+      </div>
 
-        {/* Stats row */}
-        <div className="flex items-center gap-6 flex-wrap">
-          {[
-            { value: '7,348', label: 'Trees Planted' },
-            { value: '2,658', label: 'Participants' },
-            { value: '9 days', label: 'Remaining' },
-          ].map((s) => (
-            <div key={s.label}>
-              <p className="text-white font-bold text-base leading-none">{s.value}</p>
-              <p className="text-white/40 text-[10px] uppercase tracking-widest mt-0.5">{s.label}</p>
+      {/* ── Bottom stats bar ── */}
+      <div className="relative z-10 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+        <div className="grid grid-cols-2 md:grid-cols-4 max-w-6xl mx-auto">
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              className={`flex flex-col items-center justify-center py-6 px-4 text-center ${i > 0 ? 'md:border-l border-white/10' : ''}`}
+            >
+              <p className="text-green-400 font-bold text-3xl md:text-4xl leading-none">
+                {s.value === null ? '—' : <CountUp value={s.value} />}
+              </p>
+              <p className="text-white/40 text-[10px] md:text-xs uppercase tracking-widest mt-2">{s.label}</p>
             </div>
           ))}
         </div>
@@ -107,7 +172,7 @@ export default function Hero() {
             v.play().then(() => setPlaying(true)).catch(() => {})
           }
         }}
-        className="absolute bottom-8 right-8 md:right-12 z-10 flex items-center gap-3 group"
+        className="absolute bottom-28 right-8 md:right-12 z-10 flex items-center gap-3 group"
       >
         <span className="text-white/40 text-[10px] tracking-[0.2em] uppercase font-semibold group-hover:text-white/70 transition-colors">
           {playing ? 'Pause' : 'Play Video'}

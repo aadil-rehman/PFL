@@ -10,6 +10,8 @@ const {
   getLeaderboard,
   getMyLeaderboardRank,
   getImpactMap,
+  getImpactAreas,
+  getAreaTrees,
 } = require('../controllers/plantController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const imageAnalysisMiddleware = require('../ai/imageAnalysisMiddleware');
@@ -20,6 +22,8 @@ router.get('/summary', getCampaignSummary);
 router.get('/leaderboard', getLeaderboard);
 router.get('/leaderboard/me', protect, getMyLeaderboardRank);
 router.get('/impact-map', getImpactMap);
+router.get('/impact-areas', getImpactAreas);
+router.get('/areas/:areaKey', getAreaTrees);
 router.get('/all', getAllPlants);
 router.get('/my', protect, getMyPlants);
 router.get('/:id', getPlantById);

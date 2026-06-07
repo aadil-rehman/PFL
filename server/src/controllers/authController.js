@@ -1,28 +1,25 @@
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const AuthSession = require('../models/AuthSession');
-
-const DUMMY_OTP = '111111';
+const { sendOtp, validateOtp } = require('../services/messageCentral');
 
 const PHONE_REGEX = /^\+91[0-9]{10}$/;
 
 const createOTPSession = async (phone, req) => {
-  const otpHash = await bcrypt.hash(DUMMY_OTP, 10);
+  // MessageCentral sends the OTP and returns a verificationId we validate against later.
+  const verificationId = await sendOtp(phone);
   const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   await AuthSession.create({
     phone,
-    otpHash,
+    verificationId,
     otpExpiry,
     expiresAt,
     ipAddress: req.ip,
     userAgent: req.headers['user-agent'],
     deviceInfo: req.headers['user-device'],
   });
-
-  console.log(`[DEV] OTP for ${phone}: ${DUMMY_OTP}`);
 };
 
 const register = async (req, res) => {
@@ -101,7 +98,7 @@ const verifyOTP = async (req, res) => {
       return res.status(400).json({ success: false, message: 'OTP has expired', data: null });
     }
 
-    const isMatch = await bcrypt.compare(otp, session.otpHash);
+    const isMatch = await validateOtp({ phone, verificationId: session.verificationId, code: otp });
     if (!isMatch) {
       return res.status(400).json({ success: false, message: 'Invalid OTP', data: null });
     }

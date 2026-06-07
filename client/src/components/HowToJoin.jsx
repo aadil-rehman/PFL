@@ -3,31 +3,31 @@ const steps = [
     num: '01',
     icon: '🌱',
     title: 'Plant Something',
-    desc: 'Plant a tree, shrub, or sapling anywhere — your garden, school, rooftop, or community space.',
+    desc: 'Put a tree, shrub, or sapling in the ground anywhere you can. Your garden, your school, a rooftop, or a corner of your street.',
   },
   {
     num: '02',
     icon: '📸',
     title: 'Snap a Photo',
-    desc: 'Take a photo with your plant. Make it fun — show your smile, your hands in the soil!',
+    desc: 'Take a picture with your plant. Make it fun. Show your smile and your hands in the soil.',
   },
   {
     num: '03',
     icon: '📍',
     title: 'Add Location',
-    desc: 'Tag where you planted. Your tree goes on our live India map for everyone to see.',
+    desc: 'Tag where you planted. Your tree lands on our live map for the whole community to see.',
   },
   {
     num: '04',
     icon: '🏆',
     title: 'Climb the Board',
-    desc: 'Every plant = points. The more you plant, the higher you rank and the better your prizes.',
+    desc: 'Every plant earns you points. The more you plant, the higher you rank and the prouder you stand.',
   },
 ]
 
 export default function HowToJoin() {
   return (
-    <section className="relative bg-[#f7f3e9] px-8 md:px-16 py-20 md:py-28 overflow-hidden">
+    <section id="join" className="relative bg-[#f7f3e9] px-8 md:px-16 py-20 md:py-28 overflow-hidden scroll-mt-24">
 
       {/* Decorative blobs */}
       <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-green-300/20 blur-3xl" />
@@ -47,12 +47,12 @@ export default function HowToJoin() {
           {/* Headline */}
           <h2 className="font-serif-display text-5xl md:text-6xl font-semibold text-[#143524] leading-[1.08] mb-6 tracking-tight">
             How to Join<br />
-            the Green Wave
+            PollutionFreeLoni
           </h2>
 
           {/* Body */}
           <p className="text-[#5b6b60] text-base md:text-lg leading-relaxed max-w-md">
-            Anyone can participate. Plant something, capture the moment, and climb the leaderboard.
+            No fees, no forms, no waiting. Plant something, capture the moment, and watch your name rise up the board.
           </p>
         </div>
 

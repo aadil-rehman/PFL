@@ -3,6 +3,28 @@ const User     = require('../models/User');
 const Campaign = require('../models/Campaign');
 const { uploadToCloudinary, saveFileMeta } = require('../services/fileService');
 
+// Mission defaults — used by the summary endpoint when no Campaign document has
+// been created yet, so the homepage always shows live tree counts against the
+// real goal: 1,00,000 trees by 5 June 2027.
+const DEFAULT_CAMPAIGN = {
+  _id:       null,
+  title:     'Pollution Free Loni Mission',
+  goal:      100000,
+  startDate: new Date('2025-06-05T00:00:00.000Z'),
+  endDate:   new Date('2027-06-05T00:00:00.000Z'),
+};
+
+// Turn a free-text location ("Loni, UP", "Tila Shahbazpur") into a stable
+// slug we can group and look areas up by. Falls back to 'other' when the text
+// has no usable latin characters (e.g. Devanagari-only input).
+const slugifyArea = (text = '') =>
+  text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'other';
+
 const syncUserTotalPlants = async (userId) => {
   const result = await Plant.aggregate([
     { $match: { userId, status: 'approved' } },
@@ -27,6 +49,8 @@ const submitPlant = async (req, res) => {
 
     const cloudinaryResult = await uploadToCloudinary(req.file.buffer, 'plant');
 
+    const areaName = (district || address || state || '').trim();
+
     const plant = await Plant.create({
       userId: req.user._id,
       plantName,
@@ -36,6 +60,7 @@ const submitPlant = async (req, res) => {
       state,
       district,
       address,
+      areaKey:     areaName ? slugifyArea(areaName) : undefined,
       coordinates: longitude && latitude
         ? { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] }
         : undefined,
@@ -175,10 +200,9 @@ const updatePlantStatus = async (req, res) => {
 
 const getCampaignSummary = async (req, res) => {
   try {
-    const campaign = await Campaign.findOne({ isActive: true }).sort({ endDate: -1 });
-    if (!campaign) {
-      return res.status(404).json({ success: false, message: 'No active campaign found', data: null });
-    }
+    // Fall back to the mission defaults so the campaign banner works even before
+    // an admin creates a Campaign document in the database.
+    const campaign = (await Campaign.findOne({ isActive: true }).sort({ endDate: -1 })) || DEFAULT_CAMPAIGN;
 
     const [plantsAgg, participants, states] = await Promise.all([
       Plant.aggregate([
@@ -416,4 +440,101 @@ const getImpactMap = async (req, res) => {
   }
 };
 
-module.exports = { submitPlant, getAllPlants, getMyPlants, getPlantById, updatePlantStatus, getCampaignSummary, getLeaderboard, getMyLeaderboardRank, getImpactMap };
+// Area-wise impact: group approved plants by their slug so the map can show
+// "where we planted" without needing real coordinates from users.
+const getImpactAreas = async (req, res) => {
+  try {
+    const areas = await Plant.aggregate([
+      { $match: { status: 'approved', areaKey: { $exists: true, $nin: [null, ''] } } },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id:          '$areaKey',
+          name:         { $first: '$district' },
+          state:        { $first: '$state' },
+          treeCount:    { $sum: { $ifNull: ['$quantity', 1] } },
+          entries:      { $sum: 1 },
+          latestDate:   { $first: '$createdAt' },
+          latestUser:   { $first: '$userId' },
+          participants: { $addToSet: '$userId' },
+        },
+      },
+      { $sort: { treeCount: -1 } },
+      {
+        $lookup: {
+          from:         'users',
+          localField:   'latestUser',
+          foreignField: '_id',
+          as:           'planter',
+        },
+      },
+    ]);
+
+    const data = areas.map((a) => ({
+      id:           a._id,
+      name:         a.name || a._id,
+      state:        a.state || '',
+      treeCount:    a.treeCount,
+      participants: a.participants.length,
+      planter:      a.planter?.[0]?.name || 'A planter',
+      date:         a.latestDate,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: 'Impact areas fetched successfully',
+      data: { areas: data, total: data.reduce((s, a) => s + a.treeCount, 0) },
+    });
+  } catch (err) {
+    console.error('getImpactAreas error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch impact areas', data: null });
+  }
+};
+
+// Every tree planted in a single area (for the area detail page).
+const getAreaTrees = async (req, res) => {
+  try {
+    const { areaKey } = req.params;
+
+    const plants = await Plant.find({ areaKey, status: 'approved' })
+      .populate('userId', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!plants.length) {
+      return res.status(404).json({ success: false, message: 'Area not found', data: null });
+    }
+
+    const treeCount = plants.reduce((s, p) => s + (p.quantity || 1), 0);
+
+    const trees = plants.map((p) => ({
+      id:        p._id,
+      species:   p.plantName || 'Tree',
+      quantity:  p.quantity || 1,
+      photoUrl:  p.photoUrl,
+      planter:   p.userId?.name || 'A planter',
+      date:      p.createdAt,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: 'Area trees fetched successfully',
+      data: {
+        area: {
+          id:        areaKey,
+          name:      plants[0].district || areaKey,
+          state:     plants[0].state || '',
+          planter:   plants[plants.length - 1].userId?.name || 'A planter',
+          date:      plants[plants.length - 1].createdAt,
+          treeCount,
+        },
+        trees,
+      },
+    });
+  } catch (err) {
+    console.error('getAreaTrees error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch area trees', data: null });
+  }
+};
+
+module.exports = { submitPlant, getAllPlants, getMyPlants, getPlantById, updatePlantStatus, getCampaignSummary, getLeaderboard, getMyLeaderboardRank, getImpactMap, getImpactAreas, getAreaTrees };

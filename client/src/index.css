@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Tiro+Devanagari+Hindi&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=Tiro+Devanagari+Hindi&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -7,6 +7,10 @@
 
 .font-serif-display {
   font-family: 'Fraunces', Georgia, serif;
+}
+
+.font-nav {
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
 }
 
 .font-devanagari {

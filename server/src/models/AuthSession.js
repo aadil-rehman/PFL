@@ -4,6 +4,10 @@ const authSessionSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     phone: { type: String, required: true },
+    // OTP is generated & validated by MessageCentral; we only keep their
+    // verificationId to validate the code later. otpHash is retained for any
+    // legacy sessions but is no longer written.
+    verificationId: { type: String },
     otpHash: { type: String },
     otpExpiry: { type: Date },
     otpVerified: { type: Boolean, default: false },

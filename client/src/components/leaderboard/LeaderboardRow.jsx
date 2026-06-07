@@ -12,10 +12,18 @@ export default function LeaderboardRow({ entry }) {
         {entry.rank}
       </span>
 
-      {/* Avatar */}
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-green-100 to-emerald-50 text-xl ring-1 ring-green-200/60">
-        {entry.avatar}
-      </div>
+      {/* Avatar — profile photo when available, else a deterministic plant emoji */}
+      {entry.profilePhoto ? (
+        <img
+          src={entry.profilePhoto}
+          alt={entry.name}
+          className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-green-200/60"
+        />
+      ) : (
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-green-100 to-emerald-50 text-xl ring-1 ring-green-200/60">
+          {entry.avatar}
+        </div>
+      )}
 
       {/* Name + location */}
       <div className="min-w-0 flex-1">
