@@ -55,15 +55,9 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-14 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6">
-          <a href="/" className="flex items-center gap-2">
-            <span className="text-lg font-bold text-white">
-              PollutionFree<span className="text-green-400">Loni</span>
-            </span>
-            <span>🌱</span>
-          </a>
+        <div className="mt-14 border-t border-white/10 pt-6 text-center">
           <p className="text-xs text-white/40">
-            © {new Date().getFullYear()} PollutionFreeLoni · An initiative by{' '}
+            © {new Date().getFullYear()} HaritLoni · An initiative by{' '}
             <a
               href={WORK_URL}
               target="_blank"

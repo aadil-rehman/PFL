@@ -23,12 +23,12 @@ export default function Navbar() {
   return (
     <nav className="absolute top-0 left-0 right-0 z-50 px-6 md:px-12 py-5 flex items-center justify-between">
       {/* Logo */}
-      <a href="/" className="flex items-center gap-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green-500/15 text-green-400">
+      <a href="/" className="group flex items-center gap-3">
+        <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-green-400 to-emerald-600 text-white shadow-lg shadow-green-500/30 ring-1 ring-white/20 transition-transform duration-300 group-hover:scale-105 group-hover:rotate-3">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
+            width="22"
+            height="22"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -40,8 +40,13 @@ export default function Navbar() {
             <path d="M2 21c0-4 4-9 9-11" />
           </svg>
         </span>
-        <span className="text-2xl font-bold text-white">
-          PollutionFree<span className="text-green-400">Loni</span>
+        <span className="flex flex-col leading-none">
+          <span className="font-nav text-[1.6rem] font-bold tracking-tight text-white">
+            Harit<span className="bg-linear-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">Loni</span>
+          </span>
+          <span className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.28em] text-green-400/70">
+            Plant • Breathe • Live
+          </span>
         </span>
       </a>
 

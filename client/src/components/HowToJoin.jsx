@@ -47,7 +47,7 @@ export default function HowToJoin() {
           {/* Headline */}
           <h2 className="font-serif-display text-5xl md:text-6xl font-semibold text-[#143524] leading-[1.08] mb-6 tracking-tight">
             How to Join<br />
-            PollutionFreeLoni
+            HaritLoni
           </h2>
 
           {/* Body */}

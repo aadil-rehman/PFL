@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import HomePage from './pages/HomePage'
 import AreaTreesPage from './pages/AreaTreesPage'
 import LeaderboardPage from './pages/LeaderboardPage'
@@ -19,6 +21,8 @@ export default function App() {
           </Routes>
         </SubmitPanelProvider>
       </AuthProvider>
+      <Analytics />
+      <SpeedInsights />
     </BrowserRouter>
   )
 }

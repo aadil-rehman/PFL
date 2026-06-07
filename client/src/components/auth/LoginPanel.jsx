@@ -9,7 +9,7 @@ import { sendOtp, register, verifyOtp } from '../../api/auth'
 const EMPTY_DETAILS = { name: '', state: '', district: '', address: '' }
 
 const HEADINGS = {
-  phone: { title: 'Welcome to PollutionFreeLoni', sub: 'Log in or sign up with your mobile number.' },
+  phone: { title: 'Welcome to HaritLoni', sub: 'Log in or sign up with your mobile number.' },
   details: { title: 'Almost There', sub: 'Set up your planter profile to continue.' },
   otp: { title: 'Verify Your Number', sub: 'Enter the code we just sent you.' },
 }
