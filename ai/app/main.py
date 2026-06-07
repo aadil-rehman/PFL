@@ -5,7 +5,7 @@ HOW TO RUN
   pip install -r requirements.txt
  
   # 2. Create your .env file (once)
-  cp .env.example .env          # Windows: copy .env.example .env
+  cp .env.example .env
 
   # 3. Start the server
   uvicorn app.main:app --reload                    # dev  → http://localhost:8000
@@ -13,20 +13,7 @@ HOW TO RUN
 
   # 4. Open API docs
   http://localhost:8000/docs
-
-  # 5. Test the endpoint
-  curl -X POST http://localhost:8000/api/v1/detect -F "file=@photo.jpg"
-
-  NOTE: First startup downloads the CLIP model (~600 MB) from HuggingFace.
-        Subsequent starts use the local cache — no internet needed.
 ──────────
-Application entry point.
-
-Responsibilities:
-  - Create the FastAPI app.
-  - Register the startup/shutdown lifespan (model loading).
-  - Configure structured logging.
-  - Mount the router.
 """
 
 import logging
@@ -34,16 +21,32 @@ import sys
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, Security, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 
 from app.config import get_settings
 from app.model import load_model
 from app.router import router
 
+# --- Security Setup ---
+API_KEY_NAME = "X-API-Key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
 
-#  Logging 
+def verify_api_key(api_key: str = Security(api_key_header)):
+    """Validate API Key provided in headers."""
+    settings = get_settings()
+    
+    # .env se aayi hui key ke sath match karna
+    if api_key != settings.DOCS_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing API Key",
+        )
+    return api_key
 
+
+# --- Logging ---
 def _configure_logging(level: str) -> None:
     logging.basicConfig(
         level=level.upper(),
@@ -53,8 +56,7 @@ def _configure_logging(level: str) -> None:
     )
 
 
-#  Lifespan 
-
+# --- Lifespan ---
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """Load the CLIP model once at startup; release on shutdown."""
@@ -71,8 +73,7 @@ async def lifespan(_: FastAPI):
     logger.info("Shutting down tree-ai API")
 
 
-#  App factory 
-
+# --- App factory ---
 def create_app() -> FastAPI:
     settings = get_settings()
 
@@ -82,10 +83,12 @@ def create_app() -> FastAPI:
             "Upload an image and find out whether it contains a tree. "
             "Powered by OpenAI CLIP zero-shot classification."
         ),
-        version="2.0.0",
+        version="2.0.0", 
         lifespan=lifespan,
         docs_url="/docs" if settings.APP_ENV != "production" else None,
         redoc_url=None,
+        # API Key verification puri API par lagane ke liye:
+        dependencies=[Depends(verify_api_key)] 
     )
 
     app.add_middleware(
@@ -102,8 +105,7 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
-#  Dev runner 
-
+# --- Dev runner ---
 if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
