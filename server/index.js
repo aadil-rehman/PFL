@@ -1,9 +1,17 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const mongoose = require('mongoose');
 const { MulterError } = require('multer');
 
 const app = express();
+
+// CORS: the client authenticates with a Bearer token (no cookies), so we can
+// safely reflect any origin. Set CORS_ORIGINS (comma-separated) to restrict.
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+  : true;
+app.use(cors({ origin: allowedOrigins }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
