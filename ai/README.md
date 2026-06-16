@@ -39,7 +39,6 @@ uvicorn app.main:app --reload
 First startup downloads the CLIP model (~600 MB) from HuggingFace automatically.  
 Subsequent starts use the local cache — no internet needed.
 
-- **API:** `http://localhost:8000/api/v1/detect`
 - **Docs:** `http://localhost:8000/docs`
 
 ---
